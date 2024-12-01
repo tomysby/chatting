@@ -9,39 +9,80 @@ private_key, public_key = generate_rsa_keypair()
 class ChatClient:
     def __init__(self, master):
         self.master = master
-        self.master.title("Chat Client")
+        self.master.title("🌐 Chat Client")
+        self.master.geometry("500x600")
+        self.master.configure(bg="#f5f5f5")
 
-        # Frame untuk memasukkan nama
-        self.name_frame = tk.Frame(master)
-        self.name_frame.pack(pady=10)
+        # Frame untuk memasukkan nama dan password
+        self.name_frame = tk.Frame(master, bg="#f5f5f5")
+        self.name_frame.pack(pady=20)
 
-        self.name_label = tk.Label(self.name_frame, text="Masukkan Nama Anda:")
-        self.name_label.pack(side=tk.LEFT)
+        tk.Label(
+            self.name_frame, text="Nama Anda:", font=("Arial", 12), bg="#f5f5f5"
+        ).grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.name_entry = tk.Entry(self.name_frame, font=("Arial", 12), width=25)
+        self.name_entry.grid(row=0, column=1, padx=10, pady=5)
 
-        self.name_entry = tk.Entry(self.name_frame)
-        self.name_entry.pack(side=tk.LEFT)
+        tk.Label(
+            self.name_frame, text="Password:", font=("Arial", 12), bg="#f5f5f5"
+        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.password_entry = tk.Entry(
+            self.name_frame, font=("Arial", 12), show="*", width=25
+        )
+        self.password_entry.grid(row=1, column=1, padx=10, pady=5)
 
-        self.connect_button = tk.Button(self.name_frame, text="Masuk", command=self.connect)
-        self.connect_button.pack(side=tk.LEFT)
+        self.connect_button = tk.Button(
+            self.name_frame,
+            text="🔑 Masuk",
+            font=("Arial", 12, "bold"),
+            bg="#4CAF50",
+            fg="white",
+            command=self.connect,
+        )
+        self.connect_button.grid(row=2, column=0, columnspan=2, pady=10)
 
-        # Frame untuk chat
-        self.chat_frame = tk.Frame(master)
-        self.chat_area = scrolledtext.ScrolledText(self.chat_frame, wrap=tk.WORD, state='disabled')
+        # Frame untuk area chat
+        self.chat_frame = tk.Frame(master, bg="#f5f5f5")
+        self.chat_area = scrolledtext.ScrolledText(
+            self.chat_frame,
+            wrap=tk.WORD,
+            font=("Arial", 12),
+            state="disabled",
+            bg="#ffffff",
+            fg="#333333",
+            height=20,
+        )
         self.chat_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
         # Frame untuk input pesan dan tombol kirim
-        self.input_frame = tk.Frame(self.chat_frame)
+        self.input_frame = tk.Frame(self.chat_frame, bg="#f5f5f5")
         self.input_frame.pack(padx=10, pady=5, fill=tk.X)
 
-        self.selected_user_button = tk.Button(self.input_frame, text="Pilih Penerima", command=self.open_user_selection)
-        self.selected_user_button.pack(side=tk.LEFT)
+        self.selected_user_button = tk.Button(
+            self.input_frame,
+            text="👤 Pilih Penerima",
+            font=("Arial", 12),
+            bg="#FFC107",
+            fg="#333333",
+            command=self.open_user_selection,
+        )
+        self.selected_user_button.pack(side=tk.LEFT, padx=5)
 
-        self.entry_area = tk.Entry(self.input_frame)
+        self.entry_area = tk.Entry(
+            self.input_frame, font=("Arial", 12), width=40, bg="#ffffff"
+        )
         self.entry_area.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
         self.entry_area.bind("<Return>", self.send_message)
 
-        self.send_button = tk.Button(self.input_frame, text="Kirim", command=self.send_message)
-        self.send_button.pack(side=tk.RIGHT, padx=(5, 0))
+        self.send_button = tk.Button(
+            self.input_frame,
+            text="📤 Kirim",
+            font=("Arial", 12),
+            bg="#007BFF",
+            fg="white",
+            command=self.send_message,
+        )
+        self.send_button.pack(side=tk.RIGHT, padx=5)
 
         self.client_socket = None
         self.client_name = None
@@ -53,9 +94,14 @@ class ChatClient:
 
     def connect(self):
         self.client_name = self.name_entry.get()
-        if not self.client_name:
-            messagebox.showwarning("Peringatan", "Nama tidak boleh kosong!")
+        if not self.client_name or not self.password:
+            messagebox.showwarning("Peringatan", "Nama atau Password tidak boleh kosong!")
             return
+
+        # Simulasi login berhasil
+        messagebox.showinfo("Info", f"Berhasil masuk sebagai {self.client_name}")
+        self.name_frame.pack_forget()
+        self.chat_frame.pack(fill=tk.BOTH, expand=True)
 
         # Mencoba untuk terhubung ke server
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -96,9 +142,20 @@ class ChatClient:
     def open_user_selection(self):
         # Membuat pop-up untuk memilih pengguna
         user_selection_window = Toplevel(self.master)
-        user_selection_window.title("Pilih Penerima")
+        user_selection_window.title("👤 Pilih Penerima")
+        user_selection_window.geometry("300x400")
+        user_selection_window.configure(bg="#f5f5f5")
 
-        user_listbox = Listbox(user_selection_window, height=10)
+        tk.Label(
+            user_selection_window,
+            text="Daftar Pengguna:",
+            font=("Arial", 12),
+            bg="#f5f5f5",
+        ).pack(pady=10)
+
+        user_listbox = Listbox(
+            user_selection_window, font=("Arial", 12), height=15, selectmode=tk.SINGLE
+        )
         user_listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
         # Tambahkan pengguna ke Listbox, kecuali nama pengguna yang sedang login
@@ -132,6 +189,12 @@ class ChatClient:
             encrypted_message = aes_encrypt(message, self.password)
             self.client_socket.send(f"{self.selected_user}:{encrypted_message}".encode('utf-8'))
             self.entry_area.delete(0, tk.END)  # Bersihkan kolom input setelah mengirim
+            self.chat_area.config(state="normal")
+            self.chat_area.insert(tk.END, f"{self.client_name} -> {self.selected_user}: {message}\n")
+            self.chat_area.yview(tk.END)
+            self.chat_area.config(state="disabled")
+            self.entry_area.delete(0, tk.END)
+
 
     def display_message(self, message):
         self.chat_area.config(state='normal')

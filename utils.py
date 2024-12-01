@@ -67,3 +67,22 @@ def rsa_decrypt(data, private_key):
     decrypted = private_key.decrypt(encrypted, oaep_padding)
     logging.info("RSA decryption completed")
     return decrypted.decode('utf-8')
+
+def hash_data(data):
+    logging.info("Starting hash SHA-256")
+    digest = hashes.Hash(hashes.SHA256(), backend=default_backend())
+    digest.update(data.encode('utf-8'))
+    hashed_data = digest.finalize()
+    logging.info("Hashing completed")
+    return b64encode(hashed_data).decode('utf-8')
+
+# Fungsi untuk verifikasi hash
+def verify_hash(data, hashed_value):
+    logging.info("Verifying hash-256")
+    computed_hash = hash_data(data)
+    if computed_hash == hashed_value:
+        logging.info("Hash verification successful")
+        return True
+    else:
+        logging.error("Hash verification failed")
+        return False
