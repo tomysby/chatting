@@ -1,8 +1,12 @@
 import socket
 import threading
+import logging
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, Listbox, Toplevel, END
 from utils import aes_encrypt, aes_decrypt, generate_rsa_keypair
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 private_key, public_key = generate_rsa_keypair()
 
@@ -94,29 +98,43 @@ class ChatClient:
 
     def connect(self):
         self.client_name = self.name_entry.get()
-        if not self.client_name or not self.password:
+        self.client_password = self.password_entry.get()
+        if not self.client_name or not self.client_password:
             messagebox.showwarning("Peringatan", "Nama atau Password tidak boleh kosong!")
             return
-
-        # Simulasi login berhasil
-        messagebox.showinfo("Info", f"Berhasil masuk sebagai {self.client_name}")
-        self.name_frame.pack_forget()
-        self.chat_frame.pack(fill=tk.BOTH, expand=True)
 
         # Mencoba untuk terhubung ke server
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.client_socket.connect(('localhost', 5555))
-            self.client_socket.send(self.client_name.encode('utf-8'))
+            
+            # mengirim username dan password to server
+            credentials = f"{self.client_name}:{self.client_password}"
+            self.client_socket.send(credentials.encode('utf-8')) 
 
-            # Menyembunyikan frame nama dan menampilkan frame chat
-            self.name_frame.pack_forget()
-            self.chat_frame.pack(fill=tk.BOTH, expand=True)
+            # Menerima respons dari server
+            response = self.client_socket.recv(1024).decode('utf-8')
 
-            # Mengubah judul jendela untuk mencakup nama pengguna
-            self.master.title(f"Chat Client ({self.client_name})")
+            # Memeriksa respons dari server
+            if response == "LOGIN_SUCCESS":
+                messagebox.showinfo("Info", f"Berhasil masuk sebagai {self.client_name}")
+                self.name_frame.pack_forget()
+                self.chat_frame.pack(fill=tk.BOTH, expand=True)
 
-            # Memulai thread untuk menerima pesan
+                self.client_socket.send(self.client_name.encode('utf-8'))
+
+                # Menyembunyikan frame nama dan menampilkan frame chat
+                self.name_frame.pack_forget()
+                self.chat_frame.pack(fill=tk.BOTH, expand=True)
+
+                # Mengubah judul jendela untuk mencakup nama pengguna
+                self.master.title(f"Chat Client ({self.client_name})")
+            elif response == "LOGIN_FAILED":
+                messagebox.showwarning("Peringatan", "Login gagal! Username atau password salah.")
+            else:
+                messagebox.showerror("Error", "Terjadi kesalahan pada server.")
+
+            # # Memulai thread untuk menerima pesan
             receive_thread = threading.Thread(target=self.receive_messages)
             receive_thread.start()
         except Exception as e:
@@ -134,9 +152,17 @@ class ChatClient:
                     sender, encrypted_message = message.split(':', 1)
                     decrypted_message = aes_decrypt(encrypted_message, self.password)
                     self.display_message(f"{sender}: {decrypted_message}")
-            except:
-                self.display_message("Connection closed")
+            except socket.error as e:
+                self.display_message(f"Socket error: {e}")
+                logging.error(f"Socket error: {e}")
                 self.client_socket.close()
+                self.display_message("Connection closed")
+                break
+            except Exception as e:
+                self.display_message(f"An error occurred: {e}")
+                logging.error(f"An error occurred: {e}")
+                self.client_socket.close()
+                self.display_message("Connection closed")
                 break
 
     def open_user_selection(self):
