@@ -2,6 +2,7 @@ import socket
 import threading
 import logging
 import tkinter as tk
+import ast
 from tkinter import scrolledtext, messagebox, Listbox, Toplevel, END
 from utils import aes_encrypt, aes_decrypt, generate_rsa_keypair
 
@@ -9,6 +10,7 @@ from utils import aes_encrypt, aes_decrypt, generate_rsa_keypair
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 private_key, public_key = generate_rsa_keypair()
+
 
 class ChatClient:
     def __init__(self, master):
@@ -107,10 +109,10 @@ class ChatClient:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.client_socket.connect(('localhost', 5555))
-            
+
             # mengirim username dan password to server
             credentials = f"{self.client_name}:{self.client_password}"
-            self.client_socket.send(credentials.encode('utf-8')) 
+            self.client_socket.send(credentials.encode('utf-8'))
 
             # Menerima respons dari server
             response = self.client_socket.recv(1024).decode('utf-8')
@@ -148,6 +150,16 @@ class ChatClient:
                     # Memperbarui daftar pengguna
                     user_list = message.split("USER_LIST:")[1]
                     self.user_list = user_list.split(', ')
+                elif message.startswith("CHAT:"):
+                    # Menampilkan pesan yang diterima
+                    messages = message.split("CHAT:")[1]
+                    data_list = ast.literal_eval(messages)
+
+                    msg_array = [list(item) for item in data_list]
+                    for msg in msg_array:
+                        # sender, encrypted_message = msg.split(':', 1)
+                        decrypted_message = aes_decrypt(msg[0], self.password)
+                        self.display_message(f"{msg[1]}->{msg[2]}: {decrypted_message}")
                 else:
                     sender, encrypted_message = message.split(':', 1)
                     decrypted_message = aes_decrypt(encrypted_message, self.password)
@@ -186,17 +198,19 @@ class ChatClient:
 
         # Tambahkan pengguna ke Listbox, kecuali nama pengguna yang sedang login
         for user in self.user_list:
-            if user != self.client_name: 
+            if user != self.client_name:
                 user_listbox.insert(END, user)
 
-        select_button = tk.Button(user_selection_window, text="Pilih", command=lambda: self.select_user(user_listbox, user_selection_window))
+        select_button = tk.Button(user_selection_window, text="Pilih",
+                                  command=lambda: self.select_user(user_listbox, user_selection_window))
         select_button.pack(pady=5)
 
     def select_user(self, listbox, window):
         selected_index = listbox.curselection()
         if selected_index:
             self.selected_user = listbox.get(selected_index)
-            self.selected_user_button.config(text=self.selected_user)  # Ubah teks tombol menjadi nama pengguna yang dipilih
+            self.selected_user_button.config(
+                text=self.selected_user)  # Ubah teks tombol menjadi nama pengguna yang dipilih
             window.destroy()  # Tutup pop-up setelah memilih
         else:
             messagebox.showwarning("Peringatan", "Silakan pilih pengguna!")
@@ -211,22 +225,22 @@ class ChatClient:
             return
 
         message = self.entry_area.get()
-        if message: 
+        if message:
             encrypted_message = aes_encrypt(message, self.password)
             self.client_socket.send(f"{self.selected_user}:{encrypted_message}".encode('utf-8'))
             self.entry_area.delete(0, tk.END)  # Bersihkan kolom input setelah mengirim
             self.chat_area.config(state="normal")
-            self.chat_area.insert(tk.END, f"{self.client_name} -> {self.selected_user}: {message}\n")
+            self.chat_area.insert(tk.END, f"{self.client_name}->{self.selected_user}: {message}\n")
             self.chat_area.yview(tk.END)
             self.chat_area.config(state="disabled")
             self.entry_area.delete(0, tk.END)
-
 
     def display_message(self, message):
         self.chat_area.config(state='normal')
         self.chat_area.insert(tk.END, message + '\n')
         self.chat_area.yview(tk.END)
         self.chat_area.config(state='disabled')
+
 
 if __name__ == "__main__":
     root = tk.Tk()
